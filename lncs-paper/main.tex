@@ -18,19 +18,34 @@
 \maketitle
 
 \begin{abstract}
-    In this Paper.
+    \sayan{Write later.}
 \end{abstract}
 
 \section{Introduction}
 \label{sec:introduction}
 
-Abstract rendering~\cite{AbstractRendering_Neurips2025} is a newly developed technique for over-approximating the set of all possible rendered images that can result from a set of camera poses and 3D scenes with semantic uncertainties. Previous work has demonstrated the effectiveness of abstract rendering in certifying the robustness of image processing models like classifiers and object detectors against semantic purterbations such as camera movements and lighting changes. This paper introduces an open-source toolkit for abstract rendering to the verification community. Our toolkit provides a user-friendly interface for defining 3D scenes with semantic uncertainties, specifying camera parameters, 
+Abstract rendering~\cite{AbstractRendering_Neurips2025} is a recently developed technique for over-approximating the set of all possible rendered images that can result from a set of camera poses and 3D scenes with semantic uncertainties. In a nutshell, abstract rendering takes as input a bounded set of camera poses---defined by interval pose matrices---and a set of scenes represented by 3D Gaussian spats (3DGS)~\cite{3DGS}, and propagates these sets through the standard 3DGS rendering algorithm to compute the output set of {\em abstract images}, which are represented by per-pixel color intervals or linear bounds. The key enabler for this technique is a set of piecewise linear relational abstractions for certain primitive nonlinear operations (such as ...) that appear in the rendering algorithm and careful engineering of the composition of these abstractions in the Crown~\cite{zhang2018efficient} bound propagation framework to ensure tightness of the final abstract images.
+
+Previous work has demonstrated the feasibility  of abstract rendering in certifying the robustness of image processing models like classifiers and object detectors against {\em small ranges\/} of semantic purterbations, such as planar camera movements around a target object  and lighting changes. For larger-scale applications, such as verifying vision-based controllers operating in large scenes, abstract rendering needs to be integrated into a larger verification workflow that can efficiently specify, partition, and manage the large number of abstract rendering queries that arise in such settings.
+
+This paper introduces an open-source toolkit for abstract rendering to the verification community. Our toolkit provides a user-friendly interface for defining 3D scenes with semantic uncertainties, specifying camera parameters, 
+\sayan{Highlights, results, technical challenges.}
 
 \section{Using the Abstract Rendering Toolkit}
 \label{sec:art}
 
 \paragraph{Running example and workflow.}
-We use the task of verifying a vision-based pose estimator, GateNet~\cite{}, over a large pose space in a drone racing arena as a running example in this paper. There are several steps and user-interfaces involved in performing such a large-scale verification task: (1) the user has to specify the input pose and scene spaces, (2) these spaces have to be then partitioned into smaller cells according to user-defined parameters, (3)  the abstract rendering engine is then run on these cells and the resulting abstract images are stored in a dictionary, (4) each abstract image from the dictionary is  passed through GateNet using a bound propagation tool like Crown~\cite{} to verify whether the pose estimator is robust over that cell, and (5) finally the verification results are collected for analysis and visualization. Figure~\ref{fig:art-workflow} illustrates this workflow. In the following paragraphs, we describe the modules of the toolkit that support each of these steps.
+We use the task of verifying a vision-based pose estimator, GateNet~\cite{}, over a large pose space in a drone racing arena as a running example in this paper.
+
+
+\begin{figure}[ht]
+    \centering
+    \input{figures/block.tex}
+    \caption{Abstract rendering workflow from inputs to GateNet verification output.}
+    \label{fig:art-workflow}
+\end{figure}
+
+There are several steps and user-interfaces involved in performing such a large-scale verification task: (1) the user has to specify the input pose and scene spaces, (2) these spaces have to be then partitioned into smaller cells according to user-defined parameters, (3)  the abstract rendering engine is then run on these cells and the resulting abstract images are stored in a dictionary, (4) each abstract image from the dictionary is  passed through GateNet using a bound propagation tool like Crown~\cite{} to verify whether the pose estimator is robust over that cell, and (5) finally the verification results are collected for analysis and visualization. Figure~\ref{fig:art-workflow} illustrates this workflow. In the following paragraphs, we describe the modules of the toolkit that support each of these steps.
 
 \paragraph{Input pose and scene spaces.}
 \sayan{Fill in details; try to be precise, use math where it makes sens, e.g., pose space is a subset of SE(3), etc., but dont go overboard.}
@@ -67,18 +82,21 @@ GateNet (or any consumer) reads the cached envelopes and records per-cell outcom
 Conditioning of $R$ is preserved during interpolation, avoiding $\det R\neq 1$ drift; anisotropic partitioning targets pose directions with high image sensitivity; cached envelopes are compressed without widening bounds; per-cell verdicts compose to a lap-level statement while accounting for overlapping tubes.
 
 
-\begin{figure}[ht]
-    \centering
-    \input{figures/block.tex}
-    \caption{Abstract rendering workflow from inputs to GateNet verification output.}
-    \label{fig:art-workflow}
-\end{figure}
 
 \section{Experimental Results}
 \label{sec:experiments}
 
+We evaluate the Abstract Rendering Toolkit (ART) on verifying the robustness of a pretrained GateNet-based pose estimator in $4$ different drone racing tracks created in a 3DGS environment built using FalconGym~\cite{falcon}. The four tracks correspond to $4$ racing gates placed in a flying arena in different layouts: (1) a straight track, (2) a circular track, (3) a lemminiscate track, and (4) ??. 
+
+\sayan{Describe the different inputs at an appropriate level of detail. Not all numbers need to be spelled out.}
+
+\sayan{Show qualitative results with the 3Dplots}
+
+\sayan{Main takeaways. What are they and how do you justify them?}
+
 \section{Conclusion}
 \label{sec:conclusion}
+\sayan{Write later.}
 
 
 
