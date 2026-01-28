@@ -36,6 +36,7 @@ This paper introduces an open-source toolkit for abstract rendering to the verif
 
 \paragraph{Running example and workflow.}
 We use the task of verifying a vision-based pose estimator, GateNet~\cite{}, over a large pose space in a drone racing arena as a running example in this paper.
+\sayan{Figure for running example, gates, track, pose volume around in gray, sample points, example images inset, sample pose volume, abstract image, output pose interval matrix.}
 
 
 \begin{figure}[ht]
@@ -60,7 +61,33 @@ where $\Delta_t$ encodes tracking error budgets. This bounded subset of $SE(3)$ 
 \paragraph{1) Pose standard and validation.}
 Poses are represented as homogeneous transforms $\begin{bmatrix}R&p\\0&1\end{bmatrix}$ with per-waypoint translation tubes $B(p_i,\Delta_i)$ and optional attitude jitter. The validator rejects non-orthogonal $R$, clamps drift, and ensures tube continuity, so downstream bounds remain well-conditioned.
 
-\paragraph{2) Partitioning interface.}
+Input pose space is a subset of SE(3)) and user defines it by specifying a nominal trajectory (json file) 
+with 6D waypoint, radius information, travel distance along the cynder. A sequence of such entries define the pose space. 
+Variations in the scene space in the config file (below).
+
+
+\paragraph{2) AR Config file (yaml)}
+
+Define 
+partitioning parameters for each dimension of SE(3),
+paths and file for the 3DGS scene, 
+camera intrinsics,
+addition parameters related to AR bound propagation (tile size). 
+
+\paragraph{3) Pose/scene partitioning.}
+Uses partition paramers from AR config to split the input pose tube $\mathcal{P}$ and scene uncertainties into smaller cells for focused abstract rendering. 
+Saves the resulting cells to disk for reuse.
+
+\paragraph{4) Run AR get AI for each cell and storing it in the dictionary. 
+Saved in file.}
+
+\paragraph{5) Run Crown gatetent on each cell/abstract image.}
+
+\paragraph{6) pose error check for each cell.}
+
+\paragraph{Auxiliary user function: plotting, etc.}
+
+
 The pose/scene tube is split into solver-ready regions. Splits are anisotropic: finer near gates or high-curvature segments, coarser on straights. Users pick a budget (\verb|--cells 200|) or tolerance (e.g., $0.15$\,m / $2^\circ$); the tool refines only where image Jacobians w.r.t. pose exceed a threshold, keeping AR tight without exploding cell count.
 
 \paragraph{3) AR results dictionary.}
@@ -68,6 +95,9 @@ For each region the AR engine stores alpha bounds, color bounds, and lower/upper
 
 \paragraph{4) Verification dictionary and downstream use.}
 GateNet (or any consumer) reads the cached envelopes and records per-cell outcomes: verified / failed / unknown. Keys align with the AR dictionary, so failures trace back to their pose tube and gate. Verdicts can be overlaid on the trajectory via \verb|plot_gatenet.py|, yielding a green (verified) / red (failed) lap-level map.
+
+\paragraph{5) Final error tolerance in pose estimation calculation based on intervals}
+Input pose cell - output cell defines pose estimation error tolerance. 
 
 \paragraph{Workflow.}
 \begin{enumerate}
@@ -83,24 +113,9 @@ Conditioning of $R$ is preserved during interpolation, avoiding $\det R\neq 1$ d
 
 
 
-\section{Experimental Results}
-\label{sec:experiments}
-
-We evaluate the Abstract Rendering Toolkit (ART) on verifying the robustness of a pretrained GateNet-based pose estimator in $4$ different drone racing tracks created in a 3DGS environment built using FalconGym~\cite{falcon}. The four tracks correspond to $4$ racing gates placed in a flying arena in different layouts: (1) a straight track, (2) a circular track, (3) a lemminiscate track, and (4) ??. 
-
-\sayan{Describe the different inputs at an appropriate level of detail. Not all numbers need to be spelled out.}
-
-\sayan{Show qualitative results with the 3Dplots}
-
-\sayan{Main takeaways. What are they and how do you justify them?}
-
-\section{Conclusion}
-\label{sec:conclusion}
-\sayan{Write later.}
+\input{experiments.tex}
 
 
 
-\bibliographystyle{splncs04}
-\bibliography{egbib}
 
 \end{document}
