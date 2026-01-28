@@ -1,0 +1,16 @@
+# LaTeX
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+
+# PDFs (optional)
+main.pdf
+
+# OS
+.DS_Store
