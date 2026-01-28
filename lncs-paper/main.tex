@@ -4,6 +4,8 @@
 \usepackage{amsmath,amssymb}
 \usepackage{booktabs}
 \usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,calc}
 
 \input{macros}
 
@@ -22,8 +24,55 @@
 \section{Introduction}
 \label{sec:introduction}
 
-\section{Abstract Rendering Toolkit}
+Abstract rendering~\cite{AbstractRendering_Neurips2025} is a newly developed technique for over-approximating the set of all possible rendered images that can result from a set of camera poses and 3D scenes with semantic uncertainties. Previous work has demonstrated the effectiveness of abstract rendering in certifying the robustness of image processing models like classifiers and object detectors against semantic purterbations such as camera movements and lighting changes. This paper introduces an open-source toolkit for abstract rendering to the verification community. Our toolkit provides a user-friendly interface for defining 3D scenes with semantic uncertainties, specifying camera parameters, 
+
+\section{Using the Abstract Rendering Toolkit}
 \label{sec:art}
+
+\paragraph{Running example and workflow.}
+We use the task of verifying a vision-based pose estimator, GateNet~\cite{}, over a large pose space in a drone racing arena as a running example in this paper. There are several steps and user-interfaces involved in performing such a large-scale verification task: (1) the user has to specify the input pose and scene spaces, (2) these spaces have to be then partitioned into smaller cells according to user-defined parameters, (3)  the abstract rendering engine is then run on these cells and the resulting abstract images are stored in a dictionary, (4) each abstract image from the dictionary is  passed through GateNet using a bound propagation tool like Crown~\cite{} to verify whether the pose estimator is robust over that cell, and (5) finally the verification results are collected for analysis and visualization. Figure~\ref{fig:art-workflow} illustrates this workflow. In the following paragraphs, we describe the modules of the toolkit that support each of these steps.
+
+\paragraph{Input pose and scene spaces.}
+\sayan{Fill in details; try to be precise, use math where it makes sens, e.g., pose space is a subset of SE(3), etc., but dont go overboard.}
+
+
+A planner yields a nominal trajectory $\gamma:[0,T]\to\mathbb{R}^3$ as waypoints $(p_i)$ with a smooth camera orientation field $R:[0,T]\to SO(3)$. Operational uncertainty is a tube
+\[
+\mathcal{P} = \{(p,R(t)) \mid p \in B(p(t),\Delta_t),\, t\in[0,T]\} \subset SE(3),
+\]
+where $\Delta_t$ encodes tracking error budgets. This bounded subset of $SE(3)$ is the pose space given to the toolkit.
+
+\paragraph{1) Pose standard and validation.}
+Poses are represented as homogeneous transforms $\begin{bmatrix}R&p\\0&1\end{bmatrix}$ with per-waypoint translation tubes $B(p_i,\Delta_i)$ and optional attitude jitter. The validator rejects non-orthogonal $R$, clamps drift, and ensures tube continuity, so downstream bounds remain well-conditioned.
+
+\paragraph{2) Partitioning interface.}
+The pose/scene tube is split into solver-ready regions. Splits are anisotropic: finer near gates or high-curvature segments, coarser on straights. Users pick a budget (\verb|--cells 200|) or tolerance (e.g., $0.15$\,m / $2^\circ$); the tool refines only where image Jacobians w.r.t. pose exceed a threshold, keeping AR tight without exploding cell count.
+
+\paragraph{3) AR results dictionary.}
+For each region the AR engine stores alpha bounds, color bounds, and lower/upper images keyed by (pose cell, scene cell, AR config, model hash). This cache avoids rerunning heavy rendering and supports instant plotting (\verb|ar plot --cell 42|) to visualize appearance variability near a gate.
+
+\paragraph{4) Verification dictionary and downstream use.}
+GateNet (or any consumer) reads the cached envelopes and records per-cell outcomes: verified / failed / unknown. Keys align with the AR dictionary, so failures trace back to their pose tube and gate. Verdicts can be overlaid on the trajectory via \verb|plot_gatenet.py|, yielding a green (verified) / red (failed) lap-level map.
+
+\paragraph{Workflow.}
+\begin{enumerate}
+    \item \verb|pose validate traj.json --tube 0.2| builds the $SE(3)$ tube.
+    \item \verb|pose partition --budget 180| generates focused cells near gates.
+    \item \verb|ar run --cells all| populates the AR dictionary.
+    \item \verb|verify gatenet --cells all| emits robustness verdicts.
+    \item \verb|plot_gatenet.py| visualizes per-cell results along the flight path.
+\end{enumerate}
+
+\paragraph{Technical highlights.}
+Conditioning of $R$ is preserved during interpolation, avoiding $\det R\neq 1$ drift; anisotropic partitioning targets pose directions with high image sensitivity; cached envelopes are compressed without widening bounds; per-cell verdicts compose to a lap-level statement while accounting for overlapping tubes.
+
+
+\begin{figure}[ht]
+    \centering
+    \input{figures/block.tex}
+    \caption{Abstract rendering workflow from inputs to GateNet verification output.}
+    \label{fig:art-workflow}
+\end{figure}
 
 \section{Experimental Results}
 \label{sec:experiments}
@@ -34,6 +83,6 @@
 
 
 \bibliographystyle{splncs04}
-\bibliography{bibliography/references}
+\bibliography{egbib}
 
 \end{document}
