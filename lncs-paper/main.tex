@@ -24,9 +24,13 @@
 \section{Introduction}
 \label{sec:introduction}
 
+Certification of vision-based systems under semantic uncertainties is an important and challenging problem with applications in safety-critical domains such as automotive (vision-based lane keeping~\cite{} and emergency braking~\cite{}), avionics (vision-based navigation and landing~\cite{}), and robotics (vision-based manipulation~\cite{}). Semantic uncertainties refer to variations in the 3D scene and camera parameters that affect the rendered images, such as changes in object positions, lighting conditions, and camera viewpoints. Traditional robustness verification techniques for vision models primarily focus on pixel-level perturbations (e.g., adversarial attacks~\cite{}), which do not capture the rich set of semantic variations encountered in real-world scenarios.
+With the emergence of 3D reconstruction techniques such as Neural Radiance Fields (NeRFs)~\cite{} and 3D Gaussian Splats (3DGS)~\cite{3DGS}, it has become possible to learn detailed 3D representations of scenes from images and render novel views. This not only enabled new ways of synthesizing training data for vision models and robotics simulators~\cite{} but also opened up avenues for verifying vision models under semantic uncertainties by reasoning about the underlying 3D scenes and camera parameters.
+
+
 Abstract rendering~\cite{AbstractRendering_Neurips2025} is a recently developed technique for over-approximating the set of all possible rendered images that can result from a set of camera poses and 3D scenes with semantic uncertainties. In a nutshell, abstract rendering takes as input a bounded set of camera poses---defined by interval pose matrices---and a set of scenes represented by 3D Gaussian spats (3DGS)~\cite{3DGS}, and propagates these sets through the standard 3DGS rendering algorithm to compute the output set of {\em abstract images}, which are represented by per-pixel color intervals or linear bounds. The key enabler for this technique is a set of piecewise linear relational abstractions for certain primitive nonlinear operations (such as ...) that appear in the rendering algorithm and careful engineering of the composition of these abstractions in the Crown~\cite{zhang2018efficient} bound propagation framework to ensure tightness of the final abstract images.
 
-Previous work has demonstrated the feasibility  of abstract rendering in certifying the robustness of image processing models like classifiers and object detectors against {\em small ranges\/} of semantic purterbations, such as planar camera movements around a target object  and lighting changes. For larger-scale applications, such as verifying vision-based controllers operating in large scenes, abstract rendering needs to be integrated into a larger verification workflow that can efficiently specify, partition, and manage the large number of abstract rendering queries that arise in such settings.
+Previous work~\cite{AbstractRendering_Neurips2025,Prabhakar} has demonstrated the feasibility  of abstract rendering in certifying the robustness of image processing models like classifiers and object detectors against {\em small ranges\/} of semantic purterbations, such as planar camera movements around a target object  and lighting changes. For larger-scale applications, such as verifying vision-based controllers operating in large scenes, abstract rendering needs to be integrated into a larger verification workflow that can efficiently specify, partition, and manage the large number of abstract rendering queries that arise in such settings.
 
 This paper introduces an open-source toolkit for abstract rendering to the verification community. Our toolkit provides a user-friendly interface for defining 3D scenes with semantic uncertainties, specifying camera parameters, 
 \sayan{Highlights, results, technical challenges.}
@@ -34,10 +38,20 @@ This paper introduces an open-source toolkit for abstract rendering to the verif
 \section{Using the Abstract Rendering Toolkit}
 \label{sec:art}
 
-\paragraph{Running example and workflow.}
-We use the task of verifying a vision-based pose estimator, GateNet~\cite{}, over a large pose space in a drone racing arena as a running example in this paper.
-\sayan{Figure for running example, gates, track, pose volume around in gray, sample points, example images inset, sample pose volume, abstract image, output pose interval matrix.}
+We will discuss the main components of the Abstract Rendering Toolkit (ART) using a running example of certifying the robustness of a GateNet~\cite{gatenet} vision-based pose estimator for drone racing under pose and scene uncertainties.
 
+\paragraph{Running example and scope.}
+In this application, a drone equipped with a forward-facing camera must navigate through a sequence of gates in a racing arena. GateNet is a neural network that takes as input an RGB image from the drone's camera and outputs a 6-DoF {\em pose estimate} $\hat{y} \in SE(3)$ which includes the 3D position of the drone in the arena and its orientation (roll, pitch, yaw). This pose estimate is used by the drone's controller to adjust its flight path and successfully pass through the gates. Inaccuracies in the pose estimate can lead to collisions with the gates or failure to pass through them. For this example, we use $\ART$ for certifying GateNet's robustness over a user-provided bounded set $P \subset SE(3)$ of possible drone poses around a nominal trajectory that passes through the gates. Additionally, ART can also certify models considering semantic uncertainties in the scene, such as variations in gate colors or lighting conditions.
+
+
+Figure~\ref{fig:art-workflow} summarizes the stages of the verifcation process using $\ART$ which are as follows: (1) User specifies the pose space $P$ in a JSON file and the scene file along with camera and algorithmic parameters in a YAML configuration file. (2) $\ART$ partitions $P$ into smaller cells $\{P_i\}$ and creates a dictionary of these pose cells. (3) For each pose cell $P_i$, $\ART$ performs abstract rendering to compute the corresponding abstract image $A_i$ and stores it in a dictionary. (4) Each abstract image $A_i$ is fed to GateNet using the CROWN~\cite{zhang2018efficient} verifier to obtain interval bounds on the predicted pose $\hat{Y}_i$, which are stored in a third dictionary.  Finally, (5) for each cell $P_i$, the predicted pose bounds $\hat{Y}_i$ are checked against the input pose cell $P_i$ (with a user-specified tolerance) to determine if GateNet is robust over that cell. In what follows, we describe each of these stages in more detail.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.45\textwidth]{figures/empty-run-pose}
+    \includegraphics[width=0.45\textwidth]{figures/abstract_viz_000021.png}
+    \caption{Left: nominal trajectory (blue) with pose tube (gray). Right: abstract image bounds for a cell near a gate.}
+\end{figure}
 
 \begin{figure}[ht]
     \centering
@@ -46,70 +60,42 @@ We use the task of verifying a vision-based pose estimator, GateNet~\cite{}, ove
     \label{fig:art-workflow}
 \end{figure}
 
-There are several steps and user-interfaces involved in performing such a large-scale verification task: (1) the user has to specify the input pose and scene spaces, (2) these spaces have to be then partitioned into smaller cells according to user-defined parameters, (3)  the abstract rendering engine is then run on these cells and the resulting abstract images are stored in a dictionary, (4) each abstract image from the dictionary is  passed through GateNet using a bound propagation tool like Crown~\cite{} to verify whether the pose estimator is robust over that cell, and (5) finally the verification results are collected for analysis and visualization. Figure~\ref{fig:art-workflow} illustrates this workflow. In the following paragraphs, we describe the modules of the toolkit that support each of these steps.
+\paragraph{(1) User inputs: Pose space and key analysis parameters.}
+The user specifies a pose space $P$ which is a bounded subset of $P \subseteq SE(3)$. For many control applications including drone racing, it is convenient to define $P$ as neighborhood around a set of trajectories that the agent is expected to follow. In our running example, the user provides a nominal trajectory as a sequence of waypoints (6D poses) that pass through the gates, along with tolerances on translation and orientation at each waypoint to define a tube around the trajectory (\sayan{shown in Figure~\ref{fig:art-workflow}}). This defines a  sequence of cylinders that follow the nominal trajectory. Each cylinder is defined by seven numbers: a 6D center \((p,R)\) giving translation \(p\in\mathbb{R}^3\) and nominal orientation \(R\in SO(3)\), a direction/length \(\ell\) along the trajectory, and a radius \(r\) capturing translational uncertainty. A JSON file lists about \sayan{$10^2$?} such cylinders; concatenating them forms the full tube $P\subset SE(3)$. 
 
-\paragraph{Input pose and scene spaces.}
-\sayan{Fill in details; try to be precise, use math where it makes sens, e.g., pose space is a subset of SE(3), etc., but dont go overboard. Use the running example, refer to the figure of the track and the pose-space to convey the main ideas.}
-
-
-A planner yields a nominal trajectory $\gamma:[0,T]\to\mathbb{R}^3$ as waypoints $(p_i)$ with a smooth camera orientation field $R:[0,T]\to SO(3)$. Operational uncertainty is a tube
-\[
-\mathcal{P} = \{(p,R(t)) \mid p \in B(p(t),\Delta_t),\, t\in[0,T]\} \subset SE(3),
-\]
-where $\Delta_t$ encodes tracking error budgets. This bounded subset of $SE(3)$ is the pose space given to the toolkit.
-
-\paragraph{1) Pose standard and validation.}
-Poses are represented as homogeneous transforms $\begin{bmatrix}R&p\\0&1\end{bmatrix}$ with per-waypoint translation tubes $B(p_i,\Delta_i)$ and optional attitude jitter. The validator rejects non-orthogonal $R$, clamps drift, and ensures tube continuity, so downstream bounds remain well-conditioned.
-
-Input pose space is a subset of SE(3)) and user defines it by specifying a nominal trajectory (json file) 
-with 6D waypoint, radius information, travel distance along the cynder. A sequence of such entries define the pose space. 
-Variations in the scene space in the config file (below).
+\paragraph{Configuration file (YAML).}
+An abstract rendering config file supplies: (i) the scene file for the 3DGS; (ii) camera intrinsic parameters (e.g., focal length, image size $W \times H$, optical center); (iii) partitioning parameters for the input pose space $P$ (cell budget or per-dimension split counts over \(SE(3)\)); and (iv) abstract-rendering knobs (tile size for GPU tiling, choice of bound-propagation method in CROWN). These parameters steer fidelity and runtime but are kept high-level in the paper; low-level defaults ship with the code.
+Scene variations such as saturation or hue shifts, or alternate gate colors, are optional parameters in the same config file; by default they are fixed constants.
 
 
-\paragraph{2) AR Config file (yaml)}
 
-Define 
-partitioning parameters for each dimension of SE(3),
-paths and file for the 3DGS scene, 
-camera intrinsics,
-addition parameters related to AR bound propagation (tile size). 
+\paragraph{(2) Partitioning module.}
+Given the tube \(\mathcal{P}\) and partitioning parameters, the toolkit constructs a queue/dictionary of pose cells. Splits are anisotropic: finer near gates and sharp yaw/roll changes, coarser on straight segments. Each cell stores bounds on translation \([p_{\min},p_{\max}]\) and orientation \([R_{\min},R_{\max}]\) (recorded as intervals on Euler angles or quaternions). Cells are serialized to disk so later stages can resume without re-partitioning. Scene partitioning is off by default but can be enabled if users add lighting or material ranges in the YAML.
 
-\paragraph{3) Pose/scene partitioning.}
-Uses partition paramers from AR config to split the input pose tube $\mathcal{P}$ and scene uncertainties into smaller cells for focused abstract rendering. 
-Saves the resulting cells to disk for reuse.
+\paragraph{Abstract rendering (AR) per cell.}
+For every cell, the AR engine propagates pose and scene bounds through 3DGS rendering, producing interval images: per-pixel lower/upper RGBA (or linear bounds). Outputs are cached in an “AR results dictionary”, keyed by (pose cell id, scene id, AR config hash). Each entry stores: (1) the cell bounds; (2) alpha bounds; (3) color bounds; and (4) lower/upper images. Caching prevents rerunning heavy rendering when only the downstream model changes.
 
-\paragraph{4) Run AR get AI for each cell and storing it in the dictionary. 
-Saved in file.}
+\paragraph{Verification stage (GateNet + CROWN).}
+Each abstract image is fed to GateNet using CROWN. The verifier returns interval bounds on the predicted pose (three translations plus three orientation parameters). The result is recorded in a “verification dictionary” with status \{verified, failed, unknown\} and the corresponding pose intervals. Keys align with the AR dictionary, enabling backtraces from a failed cell to its rendering evidence.
 
-\paragraph{5) Run Crown gatetent on each cell/abstract image.}
+\paragraph{Pose error check and tolerance.}
+For a cell to be verified, the GateNet output intervals must lie inside the input tube segment for that cell (or within a user-specified tolerance). Otherwise the cell is flagged failed; unknown marks cases where bound propagation is inconclusive.
 
-\paragraph{6) pose error check for each cell.}
+% \paragraph{Workflow for the drone-racing example.}
+% \begin{enumerate}
+%     \item \verb|pose validate traj.json| checks the \(SE(3)\) cylinders, orthonormalizes \(R\), and reports gaps or overlong segments.
+%     \item \verb|pose partition --budget 200| refines cells near gates and high-curvature turns, saves the cell dictionary.
+%     \item \verb|ar run --cells all| renders abstract images for each cell and writes the AR dictionary.
+%     \item \verb|verify gatenet --cells all| runs CROWN on cached images, writes verification statuses.
+%     \item \verb|plot_gatenet.py| overlays per-cell verdicts (green verified, red failed, gray unknown) on the 3D trajectory.
+% \end{enumerate}
 
-\paragraph{Auxiliary user function: plotting, etc.}
-
-
-The pose/scene tube is split into solver-ready regions. Splits are anisotropic: finer near gates or high-curvature segments, coarser on straights. Users pick a budget (\verb|--cells 200|) or tolerance (e.g., $0.15$\,m / $2^\circ$); the tool refines only where image Jacobians w.r.t. pose exceed a threshold, keeping AR tight without exploding cell count.
-
-\paragraph{3) AR results dictionary.}
-For each region the AR engine stores alpha bounds, color bounds, and lower/upper images keyed by (pose cell, scene cell, AR config, model hash). This cache avoids rerunning heavy rendering and supports instant plotting (\verb|ar plot --cell 42|) to visualize appearance variability near a gate.
-
-\paragraph{4) Verification dictionary and downstream use.}
-GateNet (or any consumer) reads the cached envelopes and records per-cell outcomes: verified / failed / unknown. Keys align with the AR dictionary, so failures trace back to their pose tube and gate. Verdicts can be overlaid on the trajectory via \verb|plot_gatenet.py|, yielding a green (verified) / red (failed) lap-level map.
-
-\paragraph{5) Final error tolerance in pose estimation calculation based on intervals}
-Input pose cell - output cell defines pose estimation error tolerance. 
-
-\paragraph{Workflow.}
-\begin{enumerate}
-    \item \verb|pose validate traj.json --tube 0.2| builds the $SE(3)$ tube.
-    \item \verb|pose partition --budget 180| generates focused cells near gates.
-    \item \verb|ar run --cells all| populates the AR dictionary.
-    \item \verb|verify gatenet --cells all| emits robustness verdicts.
-    \item \verb|plot_gatenet.py| visualizes per-cell results along the flight path.
-\end{enumerate}
-
-\paragraph{Technical highlights.}
-Conditioning of $R$ is preserved during interpolation, avoiding $\det R\neq 1$ drift; anisotropic partitioning targets pose directions with high image sensitivity; cached envelopes are compressed without widening bounds; per-cell verdicts compose to a lap-level statement while accounting for overlapping tubes.
+\paragraph{Technical choices and challenges.}
+\emph{SE(3) conditioning.} We normalize \(R\) after interpolation to keep \(\det R=1\), avoiding drift across long tubes.  
+\emph{Granularity vs.\ cost.} Anisotropic splitting prevents a blow-up in cell count while keeping abstract images tight where the view is most sensitive.  
+\emph{Deterministic storage.} Dictionaries are hashed by pose bounds and config to make runs reproducible and diffable.  
+\emph{Extensibility.} Scene variation hooks (lighting, gate colors) live in the YAML so future experiments add semantic perturbations without changing code.  
+\emph{Traceability.} Shared keys across the AR and verification dictionaries let users jump from a failed GateNet cell back to its rendered bounds.
 
 
 
