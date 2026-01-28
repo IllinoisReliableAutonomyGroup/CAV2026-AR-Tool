@@ -48,7 +48,7 @@ We use the task of verifying a vision-based pose estimator, GateNet~\cite{}, ove
 There are several steps and user-interfaces involved in performing such a large-scale verification task: (1) the user has to specify the input pose and scene spaces, (2) these spaces have to be then partitioned into smaller cells according to user-defined parameters, (3)  the abstract rendering engine is then run on these cells and the resulting abstract images are stored in a dictionary, (4) each abstract image from the dictionary is  passed through GateNet using a bound propagation tool like Crown~\cite{} to verify whether the pose estimator is robust over that cell, and (5) finally the verification results are collected for analysis and visualization. Figure~\ref{fig:art-workflow} illustrates this workflow. In the following paragraphs, we describe the modules of the toolkit that support each of these steps.
 
 \paragraph{Input pose and scene spaces.}
-\sayan{Fill in details; try to be precise, use math where it makes sens, e.g., pose space is a subset of SE(3), etc., but dont go overboard.}
+\sayan{Fill in details; try to be precise, use math where it makes sens, e.g., pose space is a subset of SE(3), etc., but dont go overboard. Use the running example, refer to the figure of the track and the pose-space to convey the main ideas.}
 
 
 A planner yields a nominal trajectory $\gamma:[0,T]\to\mathbb{R}^3$ as waypoints $(p_i)$ with a smooth camera orientation field $R:[0,T]\to SO(3)$. Operational uncertainty is a tube
