@@ -14,9 +14,16 @@
     \centering
     \includegraphics[width=0.48\textwidth]{figures/scene_circle.png}%
     \hspace{0.02\textwidth}%
-    \includegraphics[width=0.48\textwidth]{figures/scene_right.png}
+    \includegraphics[width=0.48\textwidth]{figures/scene_uturn.png}
 
-    \caption{\small Verification of two tracks: Circle (Left), Right-Angle (Right).}
+    \vspace{2mm}
+
+    \centering
+    \includegraphics[width=0.48\textwidth]{figures/scene_right.png}%
+    \hspace{0.02\textwidth}%
+    \includegraphics[width=0.48\textwidth]{figures/scene_line.png}
+
+    \caption{\small Verification of four tracks. Top-left:circular, Top-right:U-turn, Bottom-left:right-angle, Bottom-right:straight.}
     \label{fig:scene}
 \end{figure}
 
@@ -63,15 +70,15 @@ The failed cells  could be used for further improving the training of the GateNe
     \centering
     \includegraphics[width=0.48\textwidth]{figures/verfy_circle.png}%
     \hspace{0.02\textwidth}%
-    \includegraphics[width=0.48\textwidth]{figures/verfy_line.png}
+    \includegraphics[width=0.48\textwidth]{figures/verfy_uturn.png}
     
     \vspace{2mm}
     
-    \includegraphics[width=0.48\textwidth]{figures/verfy_uturn.png}%
+    \includegraphics[width=0.48\textwidth]{figures/verfy_right.png}%
     \hspace{0.02\textwidth}%
-    \includegraphics[width=0.48\textwidth]{figures/verfy_right.png}
+    \includegraphics[width=0.48\textwidth]{figures/verfy_line.png}
     
-    \caption{\small Verification results across different track layouts: (a) circular, (b) straight, (c) U-turn, and (d) right-angle tracks. Green indicates certified regions; red denotes potential violations; blue for gates.}
+    \caption{\small Verification results across different track layouts: (a) circular, (b) U-turn, (c) right-angle, and (d) straight tracks. Green indicates certified regions; red denotes potential violations; blue for gates.}
     \label{fig:verify_tracks}
 \end{figure}
 
