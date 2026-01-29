@@ -11,31 +11,44 @@
  as shown in Figure~\ref{fig:verify_tracks}.
 
 %\paragraph{Nominal trajectory.} 
-For each track, a nominal flight trajectory is generated using \emph{Kochanek--Bartels (TCB) splines}~\cite{kochanek1984interpolating}, given the start pose, end pose, and the poses of the gates. The spline is discretized into a sequence of waypoints with a fixed spatial resolution of $\Delta t = 5\,\mathrm{cm}$.
+For each track, the pose space $P$ is a large continuous region in $SE(3)$ that encompasses a tube-shaped region with a total length of up to $10$ meters and a radius between 100 to 200 centimeters. This set is defined from a nominal flight trajectory that is generated using \emph{Kochanek--Bartels (TCB) splines}~\cite{kochanek1984interpolating}, given the start pose, end pose, and the poses of the gates. The spline is discretized into a sequence of waypoints with a fixed spatial resolution of $\Delta t = 5\,\mathrm{cm}$.
 %
 %\paragraph{Pose space.} 
 The input pose space $P$ over which the robustness of the pose estimator is verified is defined by a sequence of local neighborhoods around each waypoint along the nominal trajectory.
 The shape of this local neighborhood is designed to reflect the expected variations in drone pose during actual flight conditions. It is specified as a cylindrical set with  length $d$, radius $r$, and angular deviation $\theta$. Each cylinder's length $d$ is defined by the vector from the one waypoint to the next  along the nominal trajectory. 
 %
-The radius is a function of  the waypoint’s distance to neighboring gates. \sayan{For example, controllers it is expected that the drone will be near the center of a gate when passing through it, but may deviate more when it is farther away from gates. Thus, the radius is set to be smaller when the waypoint is close to a gate and larger when it is farther away from both the preceding and subsequent gates.} 
+The radius is a function of  the waypoint’s distance to neighboring gates. \sayan{For example, for some controllers it is expected that the drone will be near the center of a gate when passing through it, but may deviate more when it is farther away from gates. Accordingly, the radius is set to be smaller when the waypoint is close to a gate and larger when it is farther away from both the preceding and subsequent gates.} 
 For each point in this cylindrical neighborhood,  the camera's pose rotation matrix $R\in SO(3)$ is constructed such that the forward direction of the waypoint aligns with the vector pointing toward the center of the next gate, ensuring that the gate remains within the camera’s field of view. The angular range spans the full circle, i.e., $\theta \in [0, 2\pi)$.
 \sayan{What does the last sentence mean?}
-An example pose space along a nominal trajectory and its cylindrical neighborhoods are illustrated in Figure~\ref{fig:verify_setup}. 
+
 %
-he pose space along a trajectory forms a tube-shaped region with a total length ranging from 5 to 10 meters and a radius between 0.1 and 0.2 meters.
+
 
 \paragraph{Pose Estimator.}
-The \emph{GateNet-based pose estimator} is trained by uniformly sampling 1{,}000 poses from the defined pose space. The network takes abstract images of shape $(3, 64, 64)$ as input and outputs a three-dimensional vector representing the relative pose from the current waypoint to the center of the next gate, expressed in the waypoint coordinate frame. The estimated camera pose in the world coordinate frame is then obtained by applying the appropriate coordinate transformation using the waypoint pose.
+We trained the  GateNet-based pose estimator  by uniformly sampling 1{,}000 poses from the defined pose space $P$. 
+\sayan{The network takes $64 \times 64$ RGB images and outputs a pose in $SE(3)$. \sayan{Althoush small, such images are indeed used in acrobatic drones and racing competitions to achieve a high frame rate control with limited onboard computation power.~\cite{harris2021uas_cluttered,hanover2023adr_survey}.}
+%
+In this work, we focus on verifying the translational component of the pose estimator, which is a vector in $\mathbb{R}^3$} representing the relative pose from the current waypoint to the center of the next gate, expressed in the waypoint coordinate frame. 
+\marginpar{\sayan{make sure this is consistent.}}
+%
+The estimated camera pose in the world coordinate frame is then obtained by applying the appropriate coordinate transformation using the waypoint pose.
 
 
-\paragraph{Result Evualation.} We denote the input pose region by the interval $[p_l, p_u]$; the resulting estimated pose as $[\hat{p}_l, \hat{p}_u]$. A pose region is considered \emph{certified} if
+\paragraph{Certifying GateNet with ART.} Let $P_i$ a pose cell constructed from $P$ represented by the interval (\sayan{or rectangle? What is the type of the cell? 3D?}) $[p_l, p_u]$. Suppose the  abstract image from $[p_l, p_u]$ when passed through $GateNet$ using Crown produces an estimated pose interval $[\hat{p}_l, \hat{p}_u]$. The input pose cell $P_i$  is considered \emph{certified} to tolerance $\delta$ if
 \[
 \max\bigl(p_u-\hat{p}_l,\; \hat{p}_u-p_l\bigr)
-\leq 10\,\text{cm},
+\leq \delta.
 \]
-meaning that, for any concrete pose within the input range, the corresponding estimated pose is guaranteed to remain within the predefined tolerance. Certified regions are visualized in green in Fig~\ref{fig:verify_tracks}. Otherwise, the region is marked in red in Fig~\ref{fig:verify_tracks}, indicating a potential violation where the pose estimation error may exceed the threshold.
+This implies that,  for any concrete pose $p \in P_i$, the corresponding estimated pose $\hat{p}$ is within $\delta$.
+In this paper, we perform certification with $\delta=10$ centimeters, which is a reasonable tolerance for medium speed racing tasks. Typical motion capture systems with expensive external cameras can achieve millimeter-level accuracy, so a 10-centimeter tolerance with onboard camera-based pose estimation is acceptable for many drone applications. We discuss the challenges of achieving tighter bounds in Section~\ref{sec:discusion}.
 
-This verification criterion is conservative due to several sources of over-approximation: (i) abstraction errors introduced by the abstract rendering pipeline, (ii) relaxation incurred when converting linear bounds into interval bounds, and (iii) the width of each pose space partition $p_u-p_l$. The first and third sources of over-approximation can be reduced by employing finer partitions, at the cost of increased computational time. The second source can be mitigated by enabling end-to-end linear bound propagation. The bottleneck is that, linear bound propagation through cumulative product operations exhibits complexity proportional to the input dimension, rendering it computationally prohibitive for scenes containing a large number of Gaussians.
+
+Certified pose cells  are visualized in green in Fig~\ref{fig:verify_tracks}. The pose cells  marked  red indicating failure of certification, which suggest a potential violation of the $\delta$-accuracy requirement. \sayan{Overall, our certification results are promising, with a significant portion of the pose space being certified. The uncertified cells make intuitive sense because these correspond to poses where the camera approaches the gate in a challenging angle.}
+\marginpar{\sayan{show examples of figures from the failed cells?}}
+The failed cells  could be used for further improving the training of the GateNet model or one may attemt to refine the pose cell partition to reduce over-approximation errors.
+
+
+
 \begin{figure}[t]
     \centering
     \includegraphics[width=0.48\textwidth]{figures/verfy_circle.png}%
@@ -52,7 +65,13 @@ This verification criterion is conservative due to several sources of over-appro
     \label{fig:verify_tracks}
 \end{figure}
 
-\paragraph{Hardware and Scalability.} All experiments are conducted on a workstation equipped with an NVIDIA GeForce RTX 4070 GPU with 16 GB of memory, using CUDA 12.2. Verifying the entire pose space across the four tracks requires approximately 10–11 hours of computation. This runtime is primarily constrained by GPU memory limitations, which restrict the number of Gaussians that can be processed simultaneously. As a result, scenes with a larger number of Gaussians incur higher computational costs. In addition, the number of pose space partitions significantly affects the overall runtime. Since the computational cost is almost irrelevant to the size of each partition width (although larger ranges may lead to increased over-approximation error through abstract rendering pipeline), increasing the number of partitions proportionally increases the total verification time.
+\paragraph{Hardware and Scalability.} All experiments are conducted on a workstation equipped with an NVIDIA GeForce RTX 4070 GPU with 16 GB of memory, using CUDA 12.2. Verifying the entire pose space across the four tracks requires approximately 10–11 hours of computation. This runtime is primarily constrained by GPU memory, which restrict the number of Gaussians that can be processed simultaneously. As a result, scenes with a larger number of Gaussians incur higher computational costs. In addition, the runtime grows linearly with the number of pose space partitions.
+\sayan{linearly?}
+The size of the pose cells do not impact the runtime, except that larger cells  may lead to more conservative abstract images and more conservative analysis, and thus make the analysis inconclusive. 
 
-\paragraph{Result Analysis. }The results shown in Figure~\ref{fig:verify_tracks} demonstrate the robustness of the Bound GateNet model across diverse track layouts. Certified regions (shown in green) dominate areas where the pose estimator remains within the predefined error bounds, indicating reliable performance over large portions of the pose space. In contrast, uncertified regions (shown in red) correspond to potential failure cases and tend to appear near gates where only a partial view of the upcoming gate is available. Pose estimation in these configurations is inherently challenging due to limited visual context, even without considering formal verification, which explains the increased frequency of verification failures in these regions.
+% Sayan: Seems repetitive with earlier paragraph
+% \paragraph{Result Analysis. }
+% The results shown in Figure~\ref{fig:verify_tracks} demonstrate the robustness of the Bound GateNet model across diverse track layouts. Certified regions (shown in green) dominate areas where the pose estimator remains within the predefined error bounds, indicating reliable performance over large portions of the pose space. In contrast, uncertified regions (shown in red) correspond to potential failure cases and tend to appear near gates where only a partial view of the upcoming gate is available. Pose estimation in these configurations is inherently challenging due to limited visual context, even without considering formal verification, which explains the increased frequency of verification failures in these regions.
 
+\sayan{Move this to discussions and future work?}
+This verification criterion is conservative due to several sources of over-approximation: (i) abstraction errors introduced by the abstract rendering pipeline, (ii) relaxation incurred when converting linear bounds into interval bounds, and (iii) the width of each pose space partition $p_u-p_l$. The first and third sources of over-approximation can be reduced by employing finer partitions, at the cost of increased computational time. The second source can be mitigated by enabling end-to-end linear bound propagation. The bottleneck is that, linear bound propagation through cumulative product operations exhibits complexity proportional to the input dimension, rendering it computationally prohibitive for scenes containing a large number of Gaussians.
