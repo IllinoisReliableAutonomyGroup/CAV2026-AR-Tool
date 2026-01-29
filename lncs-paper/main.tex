@@ -18,7 +18,7 @@
 \maketitle
 
 \begin{abstract}
-Abstract rendering over-approximates the set of images produced by uncertain poses and scenes, enabling end-to-end robustness claims for vision pipelines. We present \ART, a toolkit that turns this idea into a reproducible formal-verification workflow. Users describe a bounded subset of \(SE(3)\) as a tube of cylinders along a nominal trajectory (JSON) and provide scene, camera, and partitioning options in a short YAML file. \ART\ then (i) validates the pose tube, (ii) partitions pose/scene space anisotropically, (iii) runs abstract rendering on each cell and caches per-pixel bounds, and (iv) invokes a bound-propagation verifier (CROWN) on the cached abstract images, storing per-cell verdicts. The cached “AR” and “verification” dictionaries share keys, making failures traceable to their rendering evidence and eliminating reruns when models change. We demonstrate \ART\ on vision-based pose estimation for drone racing (GateNet) across four 3D Gaussian Splat tracks (≈470k Gaussians each); a full verification sweep completes in 10–11 hours on a single RTX 4070. All code, scenes, and scripts are released to support artifact evaluation and future verification research on vision-centric autonomy.
+    \sayan{Write later.}
 \end{abstract}
 
 \input{introduction.tex}
@@ -31,10 +31,6 @@ Abstract rendering over-approximates the set of images produced by uncertain pos
 
 \section{Discussion}
 \label{sec:discusion}
-
-limitations- Scalability to larger scenes and larger resolution images. Improving abstract rendering efficiency.
-
-Accuracy of pose estimation certification with linear sets.
 
 
 \section{Conclusion}
