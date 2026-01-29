@@ -1,93 +1,32 @@
 \resizebox{\linewidth}{!}{%
 \begin{tikzpicture}[
-    font=\sffamily,
-    line join=round,
-    line cap=round,
-    >=Latex,
-    node distance=1.4cm and 3.8cm,
-    every node/.style={inner sep=4pt},
-    filebox/.style={draw, rounded corners=3pt, fill=gray!6, very thick,
-        minimum width=2.7cm, minimum height=1.8cm, text width=2.6cm, align=center},
-    proc/.style={draw, rounded corners=6pt, fill=gray!12, very thick,
-        minimum width=5.6cm, minimum height=3.0cm, text width=5.2cm, align=center},
-    subproc/.style={draw, rounded corners=4pt, fill=gray!20, thick,
-        minimum width=4.6cm, minimum height=0.95cm, text width=4.4cm, align=center},
-    data/.style={draw, rounded corners=6pt, fill=blue!8, very thick,
-        minimum width=5.6cm, minimum height=2.3cm, text width=5.2cm, align=center},
-    model/.style={draw, rounded corners=6pt, fill=yellow!25, very thick,
-        minimum width=4.8cm, minimum height=2.2cm, text width=4.6cm, align=center},
-    script/.style={draw, rounded corners=4pt, fill=blue!55!black, text=white, very thick,
-        minimum width=3.8cm, minimum height=1.2cm, text width=3.6cm, align=center},
-    legendbox/.style={draw, rounded corners=2pt, minimum width=0.45cm, minimum height=0.35cm},
-    callout/.style={draw, fill=white, rounded corners=3pt, thick, inner sep=3pt},
-    dashedflow/.style={dash pattern=on 3pt off 3pt, line width=0.9pt, gray!80},
-    flow/.style={-Latex, line width=1.1pt, gray!70}
+    node distance=1.5cm and 2.5cm,
+    every node/.style={draw, align=center, rounded corners, minimum height=1cm},
+    input/.style={fill=blue!20},
+    process/.style={fill=green!20},
+    output/.style={fill=red!20},
+    arrow/.style={-Stealth, thick}
 ]
 
-% Inputs
-\node[filebox] (config) {\texttt{config.yaml}\\[2pt]\footnotesize Scene.ckpt};
-\node[filebox, below=1.3cm of config] (traj) {\texttt{traj.json}\\[2pt]\footnotesize Waypoints \& $[x_{\min},x_{\max}]$};
+% Nodes
+\node[input] (config) {Scene and Camera \\ Config (YAML)};
+\node[input, below=of config] (pose) {Pose Space \\ (JSON) };
+\node[process, right=of config] (rendering) {Abstract Rendering \\ (Gsplat)};
+\node[process, below=of rendering] (partition) {Partition Pose \\ Space };
+\node[process, right=of rendering] (net) {Pose Estimator \\ (GateNet + CROWN)};
+\node[output, right=of net] (results) {Verification Results \\ (Fig.~\ref{fig:verify_tracks})};
 
-% Abstract rendering block
-\node[proc, right=4.1cm of config] (render) {\textbf{Abstract Rendering}};
-  % substeps inside rendering
-  \node[subproc] (so3) at ($(render.north)+(0,-0.75)$) {Convert to SO(3)};
-  \node[subproc] (alpha) at ($(so3.south)+(0,-0.7)$) {Render Alpha};
-  \node[rounded corners=3pt, fill=blue!25, text=white, thick, minimum width=1.6cm, minimum height=0.55cm]
-        (alphas) at ($(alpha.south)+(-1.25,-0.7)$) {\footnotesize Alphas};
-  \node[rounded corners=3pt, fill=red!30!orange!70, text=white, thick, minimum width=2.1cm, minimum height=0.55cm]
-        (colors) at ($(alpha.south)+(1.3,-0.7)$) {\footnotesize Scene Colors};
+% Arrows
+\draw[arrow] (config) -- (rendering) node[midway, above, draw=none] {camera params, \\ scene (Fig.~\ref{fig:scene}),\\ etc };
+\draw[arrow] (pose) -- (partition) node[midway, above, draw=none] {Pose Space $P$ \\ (Fig.~\ref{fig:art-workflow} Left)};
+\draw[arrow] (partition) -- (rendering) node[midway, right, draw=none] {Pose Cells $\{P_i\}$};
+\draw[arrow] (rendering) -- (net) node[midway, above, draw=none] {Abstract Image $\{A_i\}$ \\ (Fig.~\ref{fig:art-workflow} Right)};
+\draw[arrow] (net) -- (results) node[midway, above, draw=none] {Predicted Pose \\ $\{\hat{Y}_i\}$};
+\draw[arrow] (partition) -| (results) node[pos=0.25, above, draw=none] {Pose Cells $\{P_i\}$};
+% Labels
 
-% Abstract data
-\node[data, below=2.1cm of render] (adata) {\textbf{Abstract Data (*.pt)}\\[2pt]
-Points,\; $x_{\min}, x_{\max}$,\; $Img_L,\; Img_U$};
-
-% Bound GateNet
-\node[model, right=4.1cm of render] (gatenet) {\textbf{Bound GateNet}\\[4pt]
-\begin{tabular}{cc}
-\footnotesize Image\_L & \footnotesize Image\_U\\[-2pt]
-\end{tabular}};
-
-% plot_gatenet
-\node[script, below=1.6cm of gatenet] (plot) {\texttt{plot\_gatenet.py}};
-
-% 3D verified plot (stylized)
-\begin{scope}[shift={(11.3, -1.3)}]
-  \coordinate (plotOrigin) at (0,0);
-  \draw[fill=gray!4, draw=gray!60, thick] (0,0) -- (3.6,1.1) -- (3.6,2.8) -- (0,1.7) -- cycle; % top
-  \draw[fill=gray!8, draw=gray!60, thick] (0,0) rectangle (3.6,1.7); % floor
-  \draw[fill=gray!10, draw=gray!60, thick] (3.6,0) -- (3.6,1.7) -- (3.6,3.0) -- (3.6,1.1) -- cycle; % side
-  % tube path
-  \draw[line width=5pt, draw=black!80] (0.4,0.3) .. controls (1.0,0.6) and (1.8,0.5) .. (2.6,0.9);
-  \draw[line width=5pt, draw=green!70!black] (2.6,0.9) -- (3.0,1.05);
-  \draw[line width=5pt, draw=red!70!black] (3.0,1.05) -- (3.3,1.18);
-  % gates
-  \foreach \x/\h in {0.8/1.0,1.6/1.15,2.4/1.05,3.2/1.2}{
-    \draw[gray!50, line width=1.2pt] (\x,0) -- (\x,\h);
-    \draw[gray!50, line width=1.2pt] (\x+0.35,0) -- (\x+0.35,\h);
-    \draw[gray!50, line width=1.2pt] (\x, \h) -- (\x+0.35,\h);
-  }
-  % legend
-  \node[callout, anchor=west, align=left] at (3.9,2.3) {\small Verified Operation Domain};
-  \node[legendbox, fill=green!70!black, anchor=west] (leg1) at (3.9,1.6) {};
-  \node[anchor=west, font=\scriptsize] at ($(leg1.east)+(0.15,0)$) {Verified Region};
-  \node[legendbox, fill=red!70!black, anchor=west] (leg2) at (3.9,1.1) {};
-  \node[anchor=west, font=\scriptsize] at ($(leg2.east)+(0.15,0)$) {Verification Failure};
-\end{scope}
-
-% Flow arrows
-\draw[flow] (config.east) -- ++(0.8,0) |- (render.west);
-\draw[flow] (traj.east) -- ++(0.8,0) |- (render.south);
-\draw[flow] (alpha.south) -- (alphas.north);
-\draw[flow] (alpha.south) -- (colors.north);
-\draw[flow] (alphas.east) -- ++(0.9,0) |- (adata.west);
-\draw[flow] (colors.east) -- ++(0.9,0) |- (adata.west);
-\draw[flow] (render.east) -- (gatenet.west);
-\draw[flow] (adata.east) -- ++(1.1,0) |- (gatenet.south);
-\draw[flow] (gatenet.east) -- ++(1.4,0) node[midway, above, font=\scriptsize] {Pose Lower} |- (11.1, -0.2);
-\draw[flow] (gatenet.east) -- ++(1.4,0) node[midway, below, font=\scriptsize] {Pose Upper} |- (11.1, -0.4);
-\draw[flow] (gatenet.south) -- (plot.north);
-\draw[dashedflow, -Latex] (plot.east) -- ++(3.4,0);
+\node[above=0.5cm of config] {User Inputs};
+\node[above=0.5cm of results] {Output};
 
 \end{tikzpicture}%
 }%
