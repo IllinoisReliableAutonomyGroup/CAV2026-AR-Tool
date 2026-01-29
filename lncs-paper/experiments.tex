@@ -10,22 +10,7 @@
  The four tracks consist of racing gates arranged in distinct layouts
  as shown in Figure~\ref{fig:verify_tracks}.
 
-\begin{figure}[t]
-    \centering
-    \includegraphics[width=0.48\textwidth]{figures/scene_circle.png}%
-    \hspace{0.02\textwidth}%
-    \includegraphics[width=0.48\textwidth]{figures/scene_uturn.png}
 
-    \vspace{2mm}
-
-    \centering
-    \includegraphics[width=0.48\textwidth]{figures/scene_right.png}%
-    \hspace{0.02\textwidth}%
-    \includegraphics[width=0.48\textwidth]{figures/scene_line.png}
-
-    \caption{\small Verification of four tracks. Top-left:circular, Top-right:U-turn, Bottom-left:right-angle, Bottom-right:straight.}
-    \label{fig:scene}
-\end{figure}
 
 %\paragraph{Nominal trajectory.} 
 For each track, the pose space $P$ is a large continuous region in $SE(3)$ that encompasses a tube-shaped region with a total length of up to $10$ meters and a radius between 100 to 200 centimeters. This set is defined from a nominal flight trajectory that is generated using \emph{Kochanek--Bartels (TCB) splines}~\cite{kochanek1984interpolating}, given the start pose, end pose, and the poses of the gates. The spline is discretized into a sequence of waypoints with a fixed spatial resolution of $\Delta t = 5\,\mathrm{cm}$.
