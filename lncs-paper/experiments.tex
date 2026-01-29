@@ -3,7 +3,7 @@
 
 \paragraph{The racing benchmark.} We evaluate the \emph{Abstract Rendering Toolkit (ART)} by verifying the robustness of a pretrained GateNet-based pose estimator across four drone racing tracks constructed in the Flying Arena at the University of Illinois Urbana-Champaign. The photorealistic 3D Gaussian Splat (3DGS) representations of these scenes, the ground truth nominal tracks,  and the code for rendering images from different camera poses are packaged as a benchmark with the released $\ART$ for others to use in robustness verification research tasks. 
 %
- The scenes are generated using \emph{FalconGym}~\cite{falcon} and \emph{Nerfstudio}~\cite{nerfstudio} which enable creation and semantic editing of 3DGS scenes. The four tracks consist of racing gates arranged in distinct layouts as shown in Figure~\ref{fig:verify_tracks}.
+ The scenes are generated using \emph{FalconGym}~\cite{falcon} and \emph{Nerfstudio}~\cite{nerfstudio} which enable creation and semantic editing of 3DGS scenes.
 %
  Each scene contains approximately 470k Gaussians.
 % , while each gate is modeled by roughly 3k Gaussians.
@@ -13,7 +13,7 @@
 
 
 %\paragraph{Nominal trajectory.} 
-For each track, the pose space $P$ is a large continuous region in $SE(3)$ that encompasses a tube-shaped region with a total length of up to $10$ meters and a radius between 100 to 200 centimeters. This set is defined from a nominal flight trajectory that is generated using \emph{Kochanek--Bartels (TCB) splines}~\cite{kochanek1984interpolating}, given the start pose, end pose, and the poses of the gates. The spline is discretized into a sequence of waypoints with a fixed spatial resolution of $\Delta t = 5\,\mathrm{cm}$.
+For each track, the pose space $P$ is a large continuous region in $SE(3)$ that encompasses a tube-shaped region with a total length of up to $10$ meters and a radius between 30 and 50 centimeters. This set is defined from a nominal flight trajectory that is generated using \emph{Kochanek--Bartels (TCB) splines}~\cite{kochanek1984interpolating}, given the start pose, end pose, and the poses of the gates. The spline is discretized into a sequence of waypoints with a fixed spatial resolution of $\Delta t = 5\,\mathrm{cm}$.
 %
 %\paragraph{Pose space.} 
 The input pose space $P$ over which the robustness of the pose estimator is verified is defined by a sequence of local neighborhoods around each waypoint along the nominal trajectory.
@@ -23,35 +23,25 @@ The radius is a function of  the waypoint’s distance to neighboring gates. For
 For each point in this cylindrical neighborhood,  the camera's pose rotation matrix $R\in SO(3)$ is constructed such that the forward direction of the waypoint aligns with the vector pointing toward the center of the next gate, ensuring that the gate remains within the camera’s field of view. 
 %
 
-
-% \paragraph{Pose Estimator.}
-% We trained the  GateNet-based pose estimator  by uniformly sampling 1{,}000 poses from the defined pose space $P$. 
-% The network takes $64 \times 64$ RGB images and outputs a pose in $SE(3)$. Althoush small, such images are indeed used in acrobatic drones and racing competitions to achieve a high frame rate control with limited onboard computation power.~\cite{harris2021uas_cluttered,hanover2023adr_survey}.
-% %
-% In this work, we focus on verifying the translational component of the pose estimator, which is a vector in $\mathbb{R}^3$ representing the relative pose from the current waypoint to the center of the next gate, expressed in the waypoint coordinate frame. 
-% \marginpar{\sayan{make sure this is consistent.}}
-% %
-% The estimated camera pose in the world coordinate frame is then obtained by applying the appropriate coordinate transformation using the waypoint pose.
-
 \paragraph{Pose Estimator.}
 We trained the GateNet-based pose estimator by uniformly sampling 1{,}000 poses from the defined pose space $P$. 
 The network takes $64 \times 64$ RGB images as input and outputs a camera pose in $SE(3)$. 
-Although relatively low-resolution, such images are commonly used in acrobatic drone racing and navigation tasks to achieve high frame-rate control under limited onboard computation~\cite{harris2021uas_cluttered, hanover2023adr_survey}. 
+Although relatively low-resolution, such images are commonly used in acrobatic drone racing and navigation tasks to achieve high frame-rate control under limited onboard computation~\cite{harris2021imitation,hanover2023adr_survey}. 
 In this work, we focus on verifying the translational component of the estimated pose, represented as a vector in $\mathbb{R}^3$, corresponding directly to the camera’s position in the world coordinate frame.
 
 
-\paragraph{Certifying GateNet with ART.} Let $P_i$ a pose cell constructed from $P$ represented by the hyperrectangles $[p_l, p_u]$. Suppose the  abstract image from $[p_l, p_u]$ when passed through $GateNet$ using Crown produces an estimated pose interval $[\hat{p}_l, \hat{p}_u]$. The input pose cell $P_i$  is considered \emph{certified} to tolerance $\delta$ if
+\paragraph{Certifying GateNet with ART.} Let $P_i$ be a pose cell constructed from $P$ represented by the hyperrectangles $[p_l, p_u]$. Suppose the  abstract image from $[p_l, p_u]$ when passed through $GateNet$ using Crown produces an estimated pose interval $[\hat{p}_l, \hat{p}_u]$. The input pose cell $P_i$  is considered \emph{certified} to tolerance $\delta$ if
 \[
 \max\bigl(p_u-\hat{p}_l,\; \hat{p}_u-p_l\bigr)
 \leq \delta.
 \]
 This implies that,  for any concrete pose $p \in P_i$, the corresponding estimated pose $\hat{p}$ is within $\delta$.
-In this paper, we perform certification with $\delta=10$ centimeters, which is a reasonable tolerance for medium speed racing tasks. Typical motion capture systems with expensive external cameras can achieve millimeter-level accuracy, so a 10-centimeter tolerance with onboard camera-based pose estimation is acceptable for many drone applications. We discuss the challenges of achieving tighter bounds in Section~\ref{sec:discusion}.
+In this paper, we perform certification with $\delta=10$ centimeters, which is a reasonable tolerance for medium speed racing tasks. Typical motion capture systems with expensive external cameras can achieve millimeter-level accuracy, so a 10-centimeter tolerance with onboard camera-based pose estimation is acceptable for many drone applications. We discuss the challenges of achieving tighter bounds in Section~\ref{sec:discussion}.
 
 
-Certified pose cells  are visualized in green in Fig~\ref{fig:verify_tracks}. The pose cells  marked  red indicating failure of certification, which suggest a potential violation of the $\delta$-accuracy requirement. Overall, our certification results are promising, with a significant portion of the pose space being certified. The uncertified cells make intuitive sense because these correspond to poses where the camera approaches the gate in a challenging angle.
+Certified pose cells  are visualized in green in Fig~\ref{fig:verify_tracks}. The pose cells marked red indicate failure of certification, which suggests a potential violation of the $\delta$-accuracy requirement. Overall, our certification results are promising, with a significant portion of the pose space being certified. The uncertified cells make intuitive sense because these correspond to poses where the camera approaches the gate in a challenging angle.
 %\marginpar{\sayan{show examples of figures from the failed cells?}}
-The failed cells  could be used for further improving the training of the GateNet model or one may attemt to refine the pose cell partition to reduce over-approximation errors.
+The failed cells  could be used for further improving the training of the GateNet model or one may attempt to refine the pose cell partition to reduce over-approximation errors.
 
 
 
@@ -67,11 +57,11 @@ The failed cells  could be used for further improving the training of the GateNe
     \hspace{0.02\textwidth}%
     \includegraphics[width=0.48\textwidth]{figures/verfy_line.png}
     
-    \caption{\small Verification results across different track layouts: (a) circular, (b) U-turn, (c) right-angle, and (d) straight tracks. Green indicates certified regions; red denotes potential violations; blue for gates.}
+    \caption{\small Verification results across four track layouts: (a) circular, (b) U-turn, (c) right-angle, and (d) straight tracks. Green indicates certified regions; red denotes potential violations; blue indicates gates.}
     \label{fig:verify_tracks}
 \end{figure}
 
-\paragraph{Hardware and Running Time.} All experiments are conducted on a workstation equipped with an NVIDIA GeForce RTX 4070 GPU with 16 GB of memory, using CUDA 12.2. Verifying the entire pose space across the four tracks requires approximately 10–11 hours of computation. This runtime is primarily constrained by GPU memory, which restrict the number of Gaussians that can be processed simultaneously. As a result, scenes with a larger number of Gaussians incur higher computational costs. In addition, the runtime grows as the number of pose space partitions increase. The size of the pose cells do not impact the runtime, except that larger cells  may lead to more conservative abstract images and more conservative analysis, and thus make the analysis inconclusive. 
+\paragraph{Hardware and Running Time.} All experiments are conducted on a workstation equipped with an NVIDIA GeForce RTX 4070 GPU with 16 GB of memory, using CUDA 12.2. Verifying the entire pose space across the four tracks requires approximately 10–11 hours of computation. This runtime is primarily constrained by GPU memory, which restrict the number of Gaussians that can be processed simultaneously. As a result, scenes with a larger number of Gaussians incur higher computational costs. In addition, the runtime grows as the number of pose space partitions increases. The size of the pose cells does not impact the runtime, except that larger cells  may lead to more conservative abstract images and analysis, and thus make the analysis inconclusive. 
 
 % Sayan: Seems repetitive with earlier paragraph
 % \paragraph{Result Analysis. }
