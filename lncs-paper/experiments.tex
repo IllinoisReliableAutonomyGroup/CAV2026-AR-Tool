@@ -34,12 +34,8 @@ The cylinder radius is adaptively determined based on the waypoint’s relative 
     \label{fig:verify_tracks}
 \end{figure}
 
-\section{Conclusion}
-\label{sec:conclusion}
-\sayan{Write later.}
+\paragraph{Analysis.} The results in Figure~\ref{fig:verify_tracks} demonstrate the robustness of the Bound GateNet model across various track layouts. Certified regions (green) dominate in areas where the pose estimator operates within the predefined bounds, indicating reliable performance in these regions. However, red segments highlight potential failure cases, which are more prevalent in sharp turns or near gates where the pose space is highly constrained. This suggests that the model's robustness is influenced by the complexity of the local pose space, emphasizing the need for tighter bounds or improved training strategies in these challenging regions.
 
-Future directions: Linear set representations for tighter bounds. 
+\paragraph{Discussion.} The Abstract Rendering Toolkit (ART) provides a systematic approach to evaluate the robustness of pose estimators in complex 3D environments. By leveraging Gaussian Splatting for scene construction and defining pose spaces as cylindrical sets, ART enables precise modeling of perturbation regions. The integration of abstract image tensors and interval analysis allows for efficient certification of pose estimators, making ART a valuable tool for verifying safety-critical systems such as autonomous drones. Future enhancements, such as incorporating linear set representations, could further improve the tightness of bounds and extend the applicability of this framework.
 
 
-\bibliographystyle{splncs04}
-\bibliography{egbib}
