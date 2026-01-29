@@ -1,20 +1,41 @@
 \section{Experimental Results}
 \label{sec:experiments}
 
-We evaluate the Abstract Rendering Toolkit (ART) on verifying the robustness of a pretrained GateNet-based pose estimator in $4$ different drone racing tracks created in a 3DGS environment built using FalconGym~\cite{falcon}. The four tracks correspond to $4$ racing gates placed in a flying arena in different layouts: (1) a straight track, (2) a circular track, (3) a lemminiscate track, and (4) ??. 
+\paragraph{Scene setup.} We evaluate the \emph{Abstract Rendering Toolkit (ART)} for verifying the robustness of a pretrained GateNet-based pose estimator across four drone racing tracks constructed in a 3D Gaussian Splatting (3DGS) environment. Gate poses are specified using \emph{FalconGym}~\cite{falcon}, and the corresponding scenes are trained using \emph{Nerfstudio}~\cite{nerfstudio}. The four tracks consist of racing gates arranged in distinct layouts: (1) a straight track with three gates, (2) a circular track with four gates, (3) a lemniscate track with five gates, and (4) an arc-shaped track with four gates. Each scene contains approximately 470k Gaussians, while each gate is modeled by roughly 3k Gaussians.
 
-\sayan{Describe the different inputs at an appropriate level of detail. Not all numbers need to be spelled out.}
+\paragraph{Nominal trajectory.} For each track, nominal flight trajectories are generated using \emph{Kochanek--Bartels (TCB) splines}~\cite{kochanek1984interpolating}, given the start pose, end pose, and the poses of the gates. The spline is discretized into a sequence of waypoints with a fixed spatial resolution of $\Delta t = 5\,\mathrm{cm}$.
+
+\paragraph{Pose space.} Around each waypoint, we define a local perturbation region parameterized as a cylindrical set with dimensions $(d, r, \theta)$, corresponding to height, radial displacement, and angular deviation, respectively. The cylinder height is defined by the vector from the current waypoint to the subsequent waypoint along the nominal trajectory. A rotation matrix $R$ is constructed such that the forward direction of the waypoint aligns with the vector pointing toward the center of the next gate, ensuring that the gate remains within the camera’s field of view. The angular range spans the full circle, i.e., $\theta \in [0, 2\pi)$.
+The cylinder radius is adaptively determined based on the waypoint’s relative distance to neighboring gates: it is smaller when the waypoint lies closer to a gate and larger when it is farther from both the preceding and subsequent gates. Collectively, the pose space along a trajectory forms a tube-shaped region with a total length ranging from 5 to 10 meters and a radius between 0.1 and 0.2 meters.
+
+\paragraph{Pose estimator.} The \emph{Bound GateNet} model is trained by sampling 1{,}000 poses from the defined pose space. The network takes an abstract image tensor of shape $(3, 64, 64)$ as input and outputs a three-dimensional vector representing the relative pose from the current waypoint to the center of the next gate, expressed in the waypoint coordinate frame. The estimated pose in the world coordinate frame is obtained by applying the corresponding rotation matrix $R$.
+
+\paragraph{Result evualation.} After computing abstract images, they are fed into Bound GateNet to obtain interval bounds on the estimated pose. If the maximum deviation between the estimated pose interval and the input pose interval is below a predefined threshold of 10\,cm, the network is considered \emph{certified} over that pose region and is visualized in green. Otherwise, the region is marked in red, indicating a potential violation where the estimated pose may deviate beyond the allowed threshold.
+
+\paragraph{Hardware setup.} All experiments are conducted on a workstation equipped with an NVIDIA GeForce RTX 4070 GPU (16 GB memory) using CUDA 12.2.
 
 \sayan{Show qualitative results with the 3Dplots}
 
 \sayan{Main takeaways. What are they and how do you justify them?}
 
-\section{Conclusion}
-\label{sec:conclusion}
-\sayan{Write later.}
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.48\textwidth]{figures/verfy_circle.png}%
+    \hspace{0.02\textwidth}%
+    \includegraphics[width=0.48\textwidth]{figures/verfy_line.png}
+    
+    \vspace{2mm}
+    
+    \includegraphics[width=0.48\textwidth]{figures/verfy_uturn.png}%
+    \hspace{0.02\textwidth}%
+    \includegraphics[width=0.48\textwidth]{figures/verfy_right.png}
+    
+    \caption{\small Verification results for different track layouts: (a) Circular track, (b) Straight track, (c) U-turn track, (d) Right-angle track. Green segments indicate certified regions where the pose estimator is robust within the specified bounds, while red segments highlight potential violations.}
+    \label{fig:verify_tracks}
+\end{figure}
 
-Future directions: Linear set representations for tighter bounds. 
+\paragraph{Analysis.} The results in Figure~\ref{fig:verify_tracks} demonstrate the robustness of the Bound GateNet model across various track layouts. Certified regions (green) dominate in areas where the pose estimator operates within the predefined bounds, indicating reliable performance in these regions. However, red segments highlight potential failure cases, which are more prevalent in sharp turns or near gates where the pose space is highly constrained. This suggests that the model's robustness is influenced by the complexity of the local pose space, emphasizing the need for tighter bounds or improved training strategies in these challenging regions.
+
+\paragraph{Discussion.} The Abstract Rendering Toolkit (ART) provides a systematic approach to evaluate the robustness of pose estimators in complex 3D environments. By leveraging Gaussian Splatting for scene construction and defining pose spaces as cylindrical sets, ART enables precise modeling of perturbation regions. The integration of abstract image tensors and interval analysis allows for efficient certification of pose estimators, making ART a valuable tool for verifying safety-critical systems such as autonomous drones. Future enhancements, such as incorporating linear set representations, could further improve the tightness of bounds and extend the applicability of this framework.
 
 
-\bibliographystyle{splncs04}
-\bibliography{egbib}
