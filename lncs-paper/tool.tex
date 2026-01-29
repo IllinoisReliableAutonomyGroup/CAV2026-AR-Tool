@@ -1,7 +1,7 @@
 \section{Using the Abstract Rendering Toolkit}
 \label{sec:art}
 
-We will discuss the main components of the Abstract Rendering Toolkit (ART) using a running example of certifying the robustness of a GateNet~\cite{gatenet} vision-based pose estimator for drone racing under pose and scene uncertainties.
+We will discuss the main components of the Abstract Rendering Toolkit (ART) using a running example of certifying the robustness of a GateNet~\cite{9636207} vision-based pose estimator for drone racing under pose and scene uncertainties.
 
 \paragraph{Running example and scope.}
 In this application, a drone equipped with a forward-facing camera must navigate through a sequence of gates in a racing arena. GateNet is a neural network that takes as input an RGB image from the drone's camera and outputs a 6-DoF {\em pose estimate} $\hat{y} \in SE(3)$ which includes the 3D position of the drone in the arena and its orientation (roll, pitch, yaw). This pose estimate is used by the drone's controller to adjust its flight path and successfully pass through the gates. Inaccuracies in the pose estimate can lead to collisions with the gates or failure to pass through them. For this example, we use $\ART$ for certifying GateNet's robustness over a user-provided bounded set $P \subset SE(3)$ of possible drone poses around a nominal trajectory that passes through the gates. Additionally, ART can also certify models considering semantic uncertainties in the scene, such as variations in gate colors or lighting conditions.
