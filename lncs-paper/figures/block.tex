@@ -13,7 +13,7 @@
 \node[input, below=of config] (pose) {Pose Space \\ (JSON) };
 \node[process, right=of config] (rendering) {Abstract Rendering \\ (Gsplat)};
 \node[process, below=of rendering] (partition) {Partition Pose \\ Space };
-\node[process, right=of rendering] (net) {Pose Estimator \\ (GateNet + CROWN)};
+\node[process, right=of rendering] (net) {CROWN \\ (GateNet)};
 \node[output, right=of net] (results) {Verification Results \\ (Fig.~\ref{fig:verify_tracks})};
 
 % Arrows

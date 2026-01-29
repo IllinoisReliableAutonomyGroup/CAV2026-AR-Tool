@@ -1,5 +1,5 @@
 \section{Discussion and Conclusion}
-\label{sec:discusion}
+\label{sec:discussion}
 
 The verification criterion adopted in this work is inherently conservative, arising from multiple sources of over-approximation, including abstraction errors introduced by the abstract rendering pipeline, relaxations incurred when linear bounds are converted into interval bounds, and the incorporation of pose cell width into the certification metric. Although employing finer partitions can mitigate abstraction error, this approach incurs increased computational cost. A promising future direction is to enable end-to-end linear bound propagation throughout the entire pipeline, which would remove intermediate interval relaxations and decouple the certification metric from pose cell width, thereby enabling substantially tighter certification results.
 

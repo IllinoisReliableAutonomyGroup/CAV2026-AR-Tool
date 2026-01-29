@@ -38,14 +38,7 @@ In this work, we focus on verifying the translational component of the estimated
 This implies that,  for any concrete pose $p \in P_i$, the corresponding estimated pose $\hat{p}$ is within $\delta$.
 In this paper, we perform certification with $\delta=10$ centimeters, which is a reasonable tolerance for medium speed racing tasks. Typical motion capture systems with expensive external cameras can achieve millimeter-level accuracy, so a 10-centimeter tolerance with onboard camera-based pose estimation is acceptable for many drone applications. We discuss the challenges of achieving tighter bounds in Section~\ref{sec:discussion}.
 
-
-Certified pose cells  are visualized in green in Fig~\ref{fig:verify_tracks}. The pose cells marked red indicate failure of certification, which suggests a potential violation of the $\delta$-accuracy requirement. Overall, our certification results are promising, with a significant portion of the pose space being certified. The uncertified cells make intuitive sense because these correspond to poses where the camera approaches the gate in a challenging angle.
-%\marginpar{\sayan{show examples of figures from the failed cells?}}
-The failed cells  could be used for further improving the training of the GateNet model or one may attempt to refine the pose cell partition to reduce over-approximation errors.
-
-
-
-\begin{figure}[t]
+\begin{figure}[h]
     \centering
     \includegraphics[width=0.48\textwidth]{figures/verfy_circle.png}%
     \hspace{0.02\textwidth}%
@@ -60,6 +53,23 @@ The failed cells  could be used for further improving the training of the GateNe
     \caption{\small Verification results across four track layouts: (a) circular, (b) U-turn, (c) right-angle, and (d) straight tracks. Green indicates certified regions; red denotes potential violations; blue indicates gates.}
     \label{fig:verify_tracks}
 \end{figure}
+
+Certified pose cells  are visualized in green in Fig~\ref{fig:verify_tracks}. The pose cells marked red indicate failure of certification, which suggests a potential violation of the $\delta$-accuracy requirement. Overall, our certification results are promising, with a significant portion of the pose space being certified. The uncertified cells make intuitive sense because these correspond to poses where the camera approaches the gate in a challenging angle.
+For example in Fig.~\ref{fig:verify_abs_emp}(b), the gate is only partially visible in the top-right corner of the abstract images, making accurate pose estimation difficult. In contrast, Fig.~\ref{fig:verify_abs_emp}(a) shows a certified pose cell where the gate is clearly visible in the abstract image, leading to a reliable pose estimate.
+%\marginpar{\sayan{show examples of figures from the failed cells?}}
+The failed cells  could be used for further improving the training of the GateNet model or one may attempt to refine the pose cell partition to reduce over-approximation errors.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.48\textwidth]{figures/abs_viz_success.png}%
+    \hspace{0.02\textwidth}%
+    \includegraphics[width=0.48\textwidth]{figures/abs_viz_failure.png}
+    
+    \caption{\small Visualization of abstract images for (a) certifiable pose cell, and (b) failure pose cell. Gate is clearly visible in (a); in (b), it appears only at the top-right corner. For each subfigure (a) and (b), Top-left: sample concrete image from the pose cell; bottom-left/right: lower/upper bound abstract images; top-right: per-pixel difference heatmap between bounds.}
+    \label{fig:verify_abs_emp}
+\end{figure}
+
+
 
 \paragraph{Hardware and Running Time.} All experiments are conducted on a workstation equipped with an NVIDIA GeForce RTX 4070 GPU with 16 GB of memory, using CUDA 12.2. Verifying the entire pose space across the four tracks requires approximately 10–11 hours of computation. This runtime is primarily constrained by GPU memory, which restrict the number of Gaussians that can be processed simultaneously. As a result, scenes with a larger number of Gaussians incur higher computational costs. In addition, the runtime grows as the number of pose space partitions increases. The size of the pose cells does not impact the runtime, except that larger cells  may lead to more conservative abstract images and analysis, and thus make the analysis inconclusive. 
 
